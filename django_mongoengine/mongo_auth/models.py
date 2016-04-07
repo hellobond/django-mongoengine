@@ -1,3 +1,5 @@
+import logging
+from django.conf import settings
 from django.utils.encoding import smart_str
 from django.utils.translation import ugettext_lazy as _
 from django.utils import timezone
@@ -5,13 +7,38 @@ from django.contrib.auth.models import _user_has_perm, _user_get_all_permissions
 from django.db import models
 from django.contrib.contenttypes.models import ContentTypeManager
 from django.contrib import auth
-
+try:
+    from django.utils.module_loading import import_module
+except ImportError:
+    """Handle older versions of Django"""
+    from django.utils.importlib import import_module
 from bson.objectid import ObjectId
 from mongoengine import ImproperlyConfigured
 
 from django_mongoengine import document
 from django_mongoengine import fields
 from .managers import MongoUserManager
+
+logger = logging.getLogger(__name__)
+
+__all__ = (
+    'get_user_document',
+)
+
+MONGOENGINE_USER_DOCUMENT = getattr(
+    settings, 'MONGOENGINE_USER_DOCUMENT', 'django_mongoengine.mongo_auth.models.User')
+
+def get_user_document():
+    """Get the user document class used for authentication.
+
+    This is the class defined in settings.MONGOENGINE_USER_DOCUMENT, which
+    defaults to `mongoengine.django.auth.User`.
+
+    """
+    name = MONGOENGINE_USER_DOCUMENT
+    dot = name.rindex('.')
+    module = import_module(name[:dot])
+    return getattr(module, name[dot + 1:])
 
 try:
     from django.contrib.auth.hashers import check_password, make_password
@@ -29,7 +56,9 @@ except ImportError:
 
     def check_password(raw_password, password):
         algo, salt, hash = password.split('$')
+        get_hexdigest(algo, salt, raw_password)
         return hash == get_hexdigest(algo, salt, raw_password)
+
 
     def make_password(raw_password):
         from random import random
@@ -243,6 +272,7 @@ class User(document.Document):
         :attr:`~mongoengine.django.auth.User.password` as the password is
         hashed before storage.
         """
+        logger.warn('ccccccccccccccccccc')
         return check_password(raw_password, self.password)
 
     @classmethod
