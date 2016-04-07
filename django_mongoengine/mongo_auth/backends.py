@@ -20,8 +20,6 @@ class MongoEngineBackend(object):
         user = self.user_document.objects(username=username).first()
         
         if user:
-            logger.warn(password)
-            logger.warn(user.check_password(password))
             if password and user.check_password(password):
                 backend = auth.get_backends()[0]
                 user.backend = "%s.%s" % (backend.__module__, backend.__class__.__name__)

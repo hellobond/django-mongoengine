@@ -272,7 +272,6 @@ class User(document.Document):
         :attr:`~mongoengine.django.auth.User.password` as the password is
         hashed before storage.
         """
-        logger.warn('ccccccccccccccccccc')
         return check_password(raw_password, self.password)
 
     @classmethod
